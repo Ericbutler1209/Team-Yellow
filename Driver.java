@@ -188,7 +188,7 @@ public class Driver {
     }
 
     // === Feature 04: vertical BMI histogram ===
-    public static Map<Integer, Integer> feature04_bmiBins(List<InsuranceRecord> records, int binSize) {
+     public static Map<Integer, Integer> feature04_bmiBins(List<InsuranceRecord> records, int binSize) {
         Map<Integer, Integer> bins = new TreeMap<>();
         for (InsuranceRecord r : records) {
             int b = ((int) Math.floor(r.bmi / binSize)) * binSize;
@@ -265,6 +265,38 @@ public class Driver {
         return oldAvg >= 2.0 * youngAvg;
     }
 
+    // === Feature 10: more children ⇒ lower charge per child ===
+    
+    public static boolean feature10_lowerChargePerChild(List<InsuranceRecord> records) {
+        Map<Integer, List<Double>> groups = new TreeMap<Integer, List<Double>>();
+        for (int i = 0; i < records.size(); i++) {
+            InsuranceRecord r = records.get(i);
+            List<Double> list = groups.get(r.children);
+            if (list == null) {
+                list = new ArrayList<Double>();
+                groups.put(r.children, list);
+            }
+            list.add(Double.valueOf(r.charges));
+        }
+
+        double prev = Double.MAX_VALUE;
+        Iterator<Integer> it = groups.keySet().iterator();
+        while (it.hasNext()) {
+            int c = it.next();
+            List<Double> list = groups.get(c);
+            double sum = 0.0;
+            for (int j = 0; j < list.size(); j++) sum += list.get(j).doubleValue();
+            double avg = list.size() == 0 ? 0.0 : sum / list.size();
+            double perChild;
+            if (c == 0) perChild = avg;
+            else perChild = avg / c;
+
+            if (perChild > prev) return false;
+            prev = perChild;
+        }
+        return true;
+    }
+
     // ==== MAIN ====
     public static void main(String[] args) {
         if (args.length != 2) {
@@ -307,6 +339,12 @@ public class Driver {
             System.out.println("\n=== Feature 08: Avg charges age>=50 at least 2x age<=20 ? ===");
             boolean f08 = feature08_oldVsYoungCharges(records);
             System.out.println(f08 ? "TRUE" : "FALSE"); 
+
+            //  Feature 10
+             System.out.println("\n=== Feature 10: More children ⇒ lower charge per child (monotone) ? ===");
+            boolean f10 = Driver.feature10_lowerChargePerChild(records);
+            if (f10) System.out.println("TRUE");
+            else System.out.println("FALSE");
 
             // Additional histograms (ages)
             List<Integer> ages = agesFrom(records);
